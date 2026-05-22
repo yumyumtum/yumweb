@@ -1,9 +1,13 @@
 # yumweb
 
-> A cross-platform, AI-friendly browser-automation layer for Microsoft Edge
-> (or any Chromium-based browser). Drive a dedicated, persistent-profile
-> browser instance from the command line — navigate, read, click, type,
-> screenshot, run JS, and read/post tweets.
+> **Use your already-logged-in browser as the agent’s hands.**
+>
+> yumweb is a cross-platform, AI-friendly **logged-in browser bridge** for
+> Microsoft Edge (or any Chromium-based browser). It keeps a persistent browser
+> session alive so an agent can operate inside the websites you already use:
+> read pages, switch tabs, click, type, screenshot, run JS, and work inside
+> real logged-in products like X, Gmail, Outlook, Amazon, LinkedIn, Facebook,
+> Instagram, or WeChat Web.
 
 Designed to be dropped into agent frameworks (OpenClaw, Claude Code, GitHub
 Copilot, custom RPA scripts, etc.) as a **skill**: every command is one-shot,
@@ -15,6 +19,24 @@ directory and `--remote-debugging-port=9333`. No bundled browser is
 downloaded — we use the Edge you already have installed.
 
 ---
+
+## What makes yumweb different?
+
+Most browser automation tools focus on **controlling a browser**.
+
+yumweb focuses on something slightly different:
+
+- **keeping a persistent, logged-in browser session alive**
+- **letting an agent come back later and continue using it**
+- **making already-authenticated websites part of the agent’s working world**
+
+That makes yumweb less like a test runner and more like a **personal web
+operator bridge**.
+
+If OpenClaw browser tooling and Playwright MCP are the browser infrastructure,
+yumweb is the lightweight layer that says:
+
+> *the user already logged in — now let the agent help from there.*
 
 ## Requirements
 
@@ -64,8 +86,10 @@ This launches your browser with a dedicated profile directory (`./profile/`)
 and remote-debugging enabled on `127.0.0.1:9333`. The browser window stays
 open in the background; subsequent commands attach to it.
 
-**Log into any sites you want yumweb to access** (e.g. `x.com`). Cookies are
-stored in `./profile/` and survive across runs.
+**Log into any sites you want yumweb to access** (e.g. `x.com`, Gmail,
+Outlook, LinkedIn, Amazon, WeChat Web). Cookies are stored in `./profile/`
+and survive across runs, so you log in once and the agent can keep working in
+that same browser world later.
 
 To stop the dedicated Edge:
 
@@ -139,6 +163,21 @@ Example override for a non-standard Edge install:
 ```
 
 ## Use as an agent skill
+
+This is where yumweb is strongest:
+
+- open a persistent browser once
+- let the user log into real services
+- come back later and continue from that logged-in state
+- treat the browser like the agent’s local pair of hands
+
+That makes it especially good for personal-assistant style tasks such as:
+
+- checking X / LinkedIn / Facebook feeds
+- reading Gmail / Outlook inboxes
+- checking Amazon product pages or carts
+- opening WeChat Web / social tabs the user already authenticated
+- navigating real logged-in sites without rebuilding auth every run
 
 The repo's [SKILL.md](SKILL.md) has YAML front-matter
 (`name`/`description`/`argument-hint`) compatible with skill-loading agents
