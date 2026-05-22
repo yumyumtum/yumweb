@@ -1,38 +1,55 @@
 ---
 name: yumweb
-description: "Drive a dedicated Edge browser instance to navigate, read pages as text/markdown, click, type, screenshot, run JS, and post/read X (Twitter) tweets. A general-purpose web access layer for AI agents. Windows + Edge only. Use when: open browser, read webpage, post tweet, read tweet, x.com, check aka.ms link, browse to URL, fetch page, web scrape, browser automation."
-argument-hint: "Command: start | stop | status | goto <url> | read [--mode text|md|html] [--selector CSS] | click <selector> | type <selector> <text> [--enter] | screenshot <path> | eval <js> | tabs | fetch <url> | x-read [--user <h>] [--n 20] | x-post <text>"
+description: "Use an already-logged-in Edge/Chrome/Chromium browser as the agent's hands. A persistent logged-in browser bridge for OpenClaw, Copilot CLI, Claude Code, Hermes, and other local AI agents. Use when: open browser, reuse logged-in websites, check X/Gmail/Outlook/Amazon/LinkedIn/Facebook/Instagram/WeChat Web, read webpages, switch tabs, click, type, fetch pages, browser automation."
+argument-hint: "Command: start | stop | status | goto <url> | read [--mode text|md|html] [--selector CSS] | click <selector> | type <selector> <text> [--enter] | screenshot <path> | eval <js> | tabs | tab-new [url] | tab-switch <idx> | tab-close <idx> | fetch <url> | x-read [--user <h>] [--n 20] | x-post <text>"
 ---
 
-# yumweb — generic browser interface (AI-friendly)
+# yumweb — logged-in browser bridge for AI agents
 
 > **Platform: Windows / macOS / Linux**, with any Chromium-based browser
 > (Microsoft Edge preferred; Chrome / Chromium also auto-detected).
 > **Python: 64-bit only** — Playwright's `greenlet` dependency has no 32-bit
 > Windows wheel.
 
-A dedicated Edge instance with Chrome DevTools Protocol (CDP) enabled, running
-on **port 9333** with its own user-data directory — completely separate from
-your everyday browser. Cookies persist across runs, so you log in once (e.g. to
-`x.com`) and stay logged in forever.
+A dedicated Chromium-based browser instance with Chrome DevTools Protocol (CDP)
+enabled, running on **port 9333** with its own user-data directory — separate
+from your everyday browser by default. Cookies persist across runs, so you log
+in once (e.g. to `x.com`, Gmail, Outlook, Amazon, LinkedIn, Facebook,
+Instagram, or WeChat Web) and stay logged in for later agent sessions.
 
 When multiple tabs are open, yumweb persists the last explicitly activated tab
 (`tab-switch`, `tab-new`, `goto`, `x-read`, etc.) so follow-up commands like
 `read`, `click`, and `type` target the intended page more reliably.
 
 This skill exposes a single Python script (`scripts/yumweb.py`, Playwright
-backend) that any AI agent (OpenClaw, Copilot, etc.) can shell out to in order
-to: open URLs, read page contents as text or markdown, click & type, take
-screenshots, run JavaScript, and use built-in helpers for X (Twitter).
+backend) that any AI agent (OpenClaw, Copilot CLI, Claude Code, Hermes, etc.)
+can shell out to in order to: open URLs, read page contents as text or
+markdown, click & type, take screenshots, run JavaScript, and operate inside
+real logged-in websites.
+
+## Why this skill exists
+
+Most browser tools focus on controlling a browser.
+
+yumweb focuses on preserving a **persistent, logged-in browser world** that an
+agent can come back to later.
+
+That makes it useful for personal-assistant style tasks like:
+- checking X / LinkedIn / Facebook feeds
+- reading Gmail / Outlook inboxes
+- opening Amazon product pages or carts
+- revisiting WeChat Web / other already-authenticated sites
 
 ## Why a separate browser?
 
-- **No collision** with whatever Edge instance your day-to-day work uses.
+- **No collision** with whatever browser instance your day-to-day work uses.
 - **Persistent profile** in `./profile/` next to this skill — log in once, keep
-  cookies forever (treat that directory like credentials; the bundled
+  cookies across runs (treat that directory like credentials; the bundled
   `.gitignore` excludes it from git).
 - **Headed by default** so you can see what's happening and log in manually.
 - **One-shot CLI** — every command attaches, does its job, exits.
+- **Multi-agent / cross-browser** — works well with OpenClaw, Copilot CLI,
+  Claude Code, Hermes, and Chromium-based browsers like Edge and Chrome.
 
 ## Setup
 
