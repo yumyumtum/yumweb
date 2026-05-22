@@ -53,6 +53,22 @@ yumweb is the lightweight layer that says:
 
 > *the user already logged in — now let the agent help from there.*
 
+## Why not just use a sandbox browser?
+
+Sandboxed browser sessions are great for public web tasks, testing, and clean
+reproducible automation.
+
+But for many real assistant jobs, a sandbox browser is not enough:
+
+- it usually starts **logged out**
+- it does not already live inside your real inbox, feed, cart, or social graph
+- it cannot reliably continue from the state you built up over days or weeks
+- it is good for "open a webpage" tasks, but often useless for "help me inside
+  *my* web life" tasks
+
+yumweb exists for the cases where the agent needs to work inside the websites
+you already authenticated and already care about.
+
 ## Requirements
 
 - **Windows, macOS, or Linux**
