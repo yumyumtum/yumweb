@@ -1,0 +1,17 @@
+# Local runtime data — never commit
+profile/
+logs/
+*.bak
+*.pyc
+__pycache__/
+.venv/
+venv/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Local-only config overrides
+scripts/config.local.json
