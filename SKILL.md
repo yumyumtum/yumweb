@@ -6,7 +6,8 @@ argument-hint: "Command: start | stop | status | goto <url> | read [--mode text|
 
 # yumweb — generic browser interface (AI-friendly)
 
-> **Platform: Windows + Microsoft Edge only.**
+> **Platform: Windows / macOS / Linux**, with any Chromium-based browser
+> (Microsoft Edge preferred; Chrome / Chromium also auto-detected).
 > **Python: 64-bit only** — Playwright's `greenlet` dependency has no 32-bit
 > Windows wheel.
 
@@ -107,7 +108,8 @@ When the user asks to "check what's on X about XYZ", "go look at this URL",
 ## Dependencies
 
 - 64-bit Python 3.10+
-- `playwright` (>= 1.40) — attaches to existing Edge via CDP; **no bundled browser needed**
+- `playwright` (>= 1.40) — attaches to existing browser via CDP; **no bundled browser needed**
+- `psutil` (>= 5.9) — cross-platform process management for `stop`
 - `requests`
 - `html2text` (auto-installed on first `read --mode md` if missing)
 

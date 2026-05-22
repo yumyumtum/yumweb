@@ -2,9 +2,6 @@
   "remote_debugging_port": 9333,
   "profile_dir": "",
   "log_path": "",
-  "edge_exe_candidates": [
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe"
-  ],
+  "edge_exe_candidates": [],
   "default_read_max_chars": 8000
 }

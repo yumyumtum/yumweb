@@ -18,6 +18,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import platform
+import shutil
+import signal
 import socket
 import subprocess
 import sys
@@ -30,6 +33,9 @@ from typing import Any, Optional
 HERE = Path(__file__).resolve().parent
 SKILL_DIR = HERE.parent
 CONFIG_PATH = HERE / "config.json"
+IS_WINDOWS = platform.system() == "Windows"
+IS_MAC = platform.system() == "Darwin"
+IS_LINUX = platform.system() == "Linux"
 
 
 def load_config() -> dict:
@@ -48,10 +54,63 @@ def load_config() -> dict:
 
 
 def find_edge_exe(cfg: dict) -> str:
-    for cand in cfg["edge_exe_candidates"]:
+    # 1) Explicit candidates from config.json
+    for cand in cfg.get("edge_exe_candidates", []):
+        if cand and os.path.exists(cand):
+            return cand
+    # 2) PATH lookup of common binary names (Edge first, then Chrome/Chromium fallback)
+    names = [
+        "msedge",
+        "microsoft-edge",
+        "microsoft-edge-stable",
+        "microsoft-edge-beta",
+        "microsoft-edge-dev",
+        "google-chrome",
+        "google-chrome-stable",
+        "chromium",
+        "chromium-browser",
+        "chrome",
+    ]
+    for n in names:
+        p = shutil.which(n)
+        if p:
+            return p
+    # 3) Well-known install locations per OS
+    fallbacks = []
+    if IS_MAC:
+        fallbacks = [
+            "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge",
+            "/Applications/Microsoft Edge Beta.app/Contents/MacOS/Microsoft Edge Beta",
+            "/Applications/Microsoft Edge Dev.app/Contents/MacOS/Microsoft Edge Dev",
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            "/Applications/Chromium.app/Contents/MacOS/Chromium",
+        ]
+    elif IS_LINUX:
+        fallbacks = [
+            "/usr/bin/microsoft-edge",
+            "/usr/bin/microsoft-edge-stable",
+            "/usr/bin/microsoft-edge-beta",
+            "/opt/microsoft/msedge/msedge",
+            "/usr/bin/google-chrome",
+            "/usr/bin/google-chrome-stable",
+            "/usr/bin/chromium",
+            "/usr/bin/chromium-browser",
+            "/snap/bin/chromium",
+        ]
+    elif IS_WINDOWS:
+        fallbacks = [
+            r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
+            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+        ]
+    for cand in fallbacks:
         if os.path.exists(cand):
             return cand
-    raise FileNotFoundError("Microsoft Edge (msedge.exe) not found. Update config.json.")
+    raise FileNotFoundError(
+        "No Chromium-based browser found (Edge/Chrome/Chromium). "
+        "Add an absolute path to `edge_exe_candidates` in config.json."
+    )
 
 
 def port_open(host: str, port: int, timeout: float = 0.5) -> bool:
@@ -173,17 +232,30 @@ def cmd_start(cfg: dict) -> None:
         "about:blank",
     ]
 
-    creationflags = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+    popen_kwargs = dict(
+        stdin=subprocess.DEVNULL,
+        close_fds=True,
+    )
+    if IS_WINDOWS:
+        # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        popen_kwargs["creationflags"] = 0x00000008 | 0x00000200
+    else:
+        # POSIX: detach into its own session so it survives this script exiting
+        popen_kwargs["start_new_session"] = True
+
     with open(log_path, "ab") as logf:
-        proc = subprocess.Popen(
-            args,
-            stdout=logf,
-            stderr=logf,
-            stdin=subprocess.DEVNULL,
-            creationflags=creationflags,
-            close_fds=True,
-        )
-    print(f"[yumweb] launched Edge pid={proc.pid} port={port} profile={profile}")
+        popen_kwargs["stdout"] = logf
+        popen_kwargs["stderr"] = logf
+        proc = subprocess.Popen(args, **popen_kwargs)
+
+    # Record the launched PID so `stop` can find it without scanning processes.
+    try:
+        pid_file = Path(log_path).parent / "yumweb.pid"
+        pid_file.write_text(str(proc.pid), encoding="utf-8")
+    except Exception:
+        pass
+
+    print(f"[yumweb] launched browser pid={proc.pid} port={port} profile={profile}")
     for _ in range(30):
         if port_open("127.0.0.1", port) and get_cdp_version(port):
             print(f"[yumweb] CDP ready on port {port}")
@@ -192,24 +264,104 @@ def cmd_start(cfg: dict) -> None:
     print(f"[yumweb] WARNING: CDP not responding on port {port} after 15s", file=sys.stderr)
 
 
+def _kill_pid(pid: int) -> bool:
+    try:
+        if IS_WINDOWS:
+            subprocess.run(
+                ["taskkill", "/F", "/T", "/PID", str(pid)],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                check=False, timeout=10,
+            )
+        else:
+            # Kill the whole process group (start_new_session put it in its own)
+            try:
+                os.killpg(pid, signal.SIGTERM)
+            except (ProcessLookupError, PermissionError):
+                pass
+            # Give it a moment, then SIGKILL
+            time.sleep(0.5)
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+        return True
+    except Exception:
+        return False
+
+
+def _find_pids_by_profile(profile: str) -> list:
+    """Best-effort find of browser PIDs whose command-line contains the profile dir.
+
+    Tries psutil first (cross-platform); falls back to PowerShell on Windows.
+    Returns [] if nothing found or no available method.
+    """
+    pids: list = []
+    try:
+        import psutil  # type: ignore
+        for p in psutil.process_iter(["pid", "name", "cmdline"]):
+            try:
+                cmd = " ".join(p.info.get("cmdline") or [])
+                if profile in cmd:
+                    pids.append(p.info["pid"])
+            except Exception:
+                continue
+        return pids
+    except ImportError:
+        pass
+    if IS_WINDOWS:
+        try:
+            ps_cmd = (
+                "Get-CimInstance Win32_Process -Filter \"Name='msedge.exe' OR Name='chrome.exe'\" | "
+                f"Where-Object {{ $_.CommandLine -like '*{profile.replace(chr(92), chr(92)+chr(92))}*' }} | "
+                "ForEach-Object { $_.ProcessId }"
+            )
+            out = subprocess.check_output(
+                ["powershell", "-NoProfile", "-Command", ps_cmd],
+                text=True, timeout=15,
+            )
+            pids = [int(x.strip()) for x in out.splitlines() if x.strip().isdigit()]
+        except Exception:
+            pass
+    else:
+        # POSIX fallback via pgrep
+        try:
+            out = subprocess.check_output(["pgrep", "-f", profile], text=True, timeout=10)
+            pids = [int(x.strip()) for x in out.splitlines() if x.strip().isdigit()]
+        except Exception:
+            pass
+    return pids
+
+
 def cmd_stop(cfg: dict) -> None:
     port = cfg["remote_debugging_port"]
     if not get_cdp_version(port):
         print(f"[yumweb] not running on port {port}")
         return
     profile = cfg["profile_dir"]
-    try:
-        ps_cmd = (
-            "Get-CimInstance Win32_Process -Filter \"Name='msedge.exe'\" | "
-            f"Where-Object {{ $_.CommandLine -like '*{profile.replace(chr(92), chr(92)+chr(92))}*' }} | "
-            "ForEach-Object { Stop-Process -Id $_.ProcessId -Force; $_.ProcessId }"
-        )
-        out = subprocess.check_output(["powershell", "-NoProfile", "-Command", ps_cmd], text=True, timeout=15)
-        pids = [p.strip() for p in out.splitlines() if p.strip()]
-        print(f"[yumweb] stopped pids: {pids}")
-    except subprocess.CalledProcessError as e:
-        print(f"[yumweb] stop failed: {e}", file=sys.stderr)
-        sys.exit(1)
+    killed: list = []
+
+    # 1) Try the PID we recorded at launch
+    pid_file = Path(cfg["log_path"]).parent / "yumweb.pid"
+    if pid_file.exists():
+        try:
+            pid = int(pid_file.read_text(encoding="utf-8").strip())
+            if _kill_pid(pid):
+                killed.append(pid)
+        except Exception:
+            pass
+        try:
+            pid_file.unlink()
+        except Exception:
+            pass
+
+    # 2) Sweep any remaining browser processes tied to this profile
+    for pid in _find_pids_by_profile(profile):
+        if pid in killed:
+            continue
+        if _kill_pid(pid):
+            killed.append(pid)
+
+    print(f"[yumweb] stopped pids: {killed}")
 
 
 def cmd_status(cfg: dict) -> None:

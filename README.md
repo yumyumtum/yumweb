@@ -1,9 +1,9 @@
 # yumweb
 
-> A general-purpose, AI-friendly browser-automation layer for Microsoft Edge on
-> Windows. Drive a dedicated, persistent-profile Edge instance from the
-> command line — navigate, read, click, type, screenshot, run JS, and
-> read/post tweets.
+> A cross-platform, AI-friendly browser-automation layer for Microsoft Edge
+> (or any Chromium-based browser). Drive a dedicated, persistent-profile
+> browser instance from the command line — navigate, read, click, type,
+> screenshot, run JS, and read/post tweets.
 
 Designed to be dropped into agent frameworks (OpenClaw, Claude Code, GitHub
 Copilot, custom RPA scripts, etc.) as a **skill**: every command is one-shot,
@@ -18,12 +18,15 @@ downloaded — we use the Edge you already have installed.
 
 ## Requirements
 
-- **Windows** (PowerShell or cmd)
-- **Microsoft Edge** installed (any modern Chromium-based Edge)
+- **Windows, macOS, or Linux**
+- **A Chromium-based browser** installed locally — Microsoft Edge preferred,
+  but Google Chrome and Chromium also work (yumweb auto-detects). On Linux
+  this means any of `microsoft-edge`, `google-chrome`, `chromium`, or
+  `chromium-browser` on `PATH`.
 - **64-bit Python 3.10+**
   - 32-bit Python will **not** work: Playwright depends on `greenlet`, which
-    ships no 32-bit Windows wheels. Make sure `python -c "import platform;
-    print(platform.architecture())"` reports `('64bit', ...)`.
+    ships no 32-bit Windows wheels. Verify with `python -c "import platform;
+    print(platform.architecture())"` — must report `('64bit', ...)`.
 
 ## Install
 
@@ -44,9 +47,11 @@ browser. It only attaches to your real Edge.
 python scripts\yumweb.py start
 ```
 
-This launches Edge with a dedicated profile directory (`./profile/`) and
-remote-debugging enabled on `127.0.0.1:9333`. The Edge window stays open in
-the background; subsequent commands attach to it.
+(On macOS / Linux: `python scripts/yumweb.py start`.)
+
+This launches your browser with a dedicated profile directory (`./profile/`)
+and remote-debugging enabled on `127.0.0.1:9333`. The browser window stays
+open in the background; subsequent commands attach to it.
 
 **Log into any sites you want yumweb to access** (e.g. `x.com`). Cookies are
 stored in `./profile/` and survive across runs.
@@ -94,21 +99,31 @@ Full command reference: [SKILL.md](SKILL.md).
 ## Configuration
 
 `scripts/config.json` controls the port, profile location, log location, and
-where to look for `msedge.exe`. By default the profile and log paths are
-**blank**, which means they auto-resolve to `./profile/` and
-`./logs/yumweb.log` next to the skill root. Override them with absolute paths
-if you want the profile somewhere else.
+optional explicit browser paths. By default:
+
+- `profile_dir` / `log_path` are blank → auto-resolved to `./profile/` and
+  `./logs/yumweb.log` next to the skill root.
+- `edge_exe_candidates` is empty → yumweb auto-discovers the browser by
+  searching `PATH` (`msedge`, `microsoft-edge`, `google-chrome`, `chromium`,
+  …) and standard install locations on the current OS.
+
+Override any of them with explicit paths if needed:
 
 ```json
 {
   "remote_debugging_port": 9333,
   "profile_dir": "",
   "log_path": "",
-  "edge_exe_candidates": [
-    "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe",
-    "C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe"
-  ],
+  "edge_exe_candidates": [],
   "default_read_max_chars": 8000
+}
+```
+
+Example override for a non-standard Edge install:
+
+```json
+{
+  "edge_exe_candidates": ["/opt/edge/microsoft-edge"]
 }
 ```
 
