@@ -41,6 +41,17 @@ python -m pip install -r requirements.txt
 You do **not** need `playwright install` — yumweb never launches a bundled
 browser. It only attaches to your real Edge.
 
+### Recommended wrapper (macOS / Linux)
+
+For agent environments, prefer the included wrapper so the local `.venv` is
+bootstrapped automatically:
+
+```bash
+./scripts/run.sh status
+./scripts/run.sh start
+./scripts/run.sh fetch https://example.com
+```
+
 ## First run
 
 ```cmd
@@ -136,11 +147,12 @@ it can discover the commands automatically.
 
 A typical pattern an agent should follow:
 
-1. Call `python scripts\yumweb.py status` — if not running, call `start`.
+1. Call `python scripts\yumweb.py status` (or `./scripts/run.sh status` on macOS/Linux) — if not running, call `start`.
 2. For reading a URL, call `fetch <url>` and pipe the markdown to the LLM.
 3. For X timeline / posting, use `x-read` / `x-post`.
 4. For custom DOM extraction, write JS and call `eval` (it must return
    JSON-serializable data).
+5. Prefer explicit `tab-switch <idx>` before `read` / `click` / `type` when multiple tabs are open; yumweb now persists the active tab between commands.
 
 ## Architecture
 
@@ -166,6 +178,7 @@ scripts/yumweb.py  --[Playwright sync API]--> CDP @ 127.0.0.1:9333
 
 - `profile/` contains live cookies and session data. The bundled `.gitignore`
   excludes it. Never commit, share, or upload that directory.
+- The default single-profile setup means multiple sites may share one browser session. For higher isolation, run separate yumweb copies with different `profile_dir` values.
 - `eval` executes arbitrary JavaScript in the active tab. Only call it with
   trusted input.
 - The CDP port is bound to `127.0.0.1` only. Do not expose `9333` externally.

@@ -16,6 +16,10 @@ on **port 9333** with its own user-data directory — completely separate from
 your everyday browser. Cookies persist across runs, so you log in once (e.g. to
 `x.com`) and stay logged in forever.
 
+When multiple tabs are open, yumweb persists the last explicitly activated tab
+(`tab-switch`, `tab-new`, `goto`, `x-read`, etc.) so follow-up commands like
+`read`, `click`, and `type` target the intended page more reliably.
+
 This skill exposes a single Python script (`scripts/yumweb.py`, Playwright
 backend) that any AI agent (OpenClaw, Copilot, etc.) can shell out to in order
 to: open URLs, read page contents as text or markdown, click & type, take
@@ -92,11 +96,12 @@ python scripts\yumweb.py type "input[name=q]" "GB200 firmware" --enter
 When the user asks to "check what's on X about XYZ", "go look at this URL",
 "post a tweet about Y", or anything web-browsing related:
 
-1. Run `python scripts\yumweb.py status` — `start` if not running.
+1. Run `./scripts/run.sh status` (or `python scripts\yumweb.py status` on Windows) — `start` if not running.
 2. Use `fetch <url>` for quick reads (LLM-friendly markdown output).
 3. Use `x-read` / `x-post` for X.
-4. Use `eval` for anything custom (return must be JSON-serializable).
-5. Output is plain text, ready to summarize back to the user.
+4. Use `tab-switch <idx>` before `read` / `click` / `type` when multiple tabs are open.
+5. Use `eval` for anything custom (return must be JSON-serializable).
+6. Output is plain text, ready to summarize back to the user.
 
 ## Files
 
@@ -104,6 +109,7 @@ When the user asks to "check what's on X about XYZ", "go look at this URL",
 - `scripts/config.json` — port, profile dir, edge.exe path (paths blank → auto-resolve next to this skill)
 - `profile/` — Edge user-data dir (created on first `start`, **gitignored**)
 - `logs/yumweb.log` — stderr from launched Edge (gitignored)
+- `logs/active_tab.json` — last active tab metadata used to make follow-up commands target the intended page
 
 ## Dependencies
 
