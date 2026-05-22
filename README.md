@@ -2,12 +2,14 @@
 
 > **Use your already-logged-in browser as the agent’s hands.**
 >
-> yumweb is a cross-platform, AI-friendly **logged-in browser bridge** for
-> Microsoft Edge (or any Chromium-based browser). It keeps a persistent browser
-> session alive so an agent can operate inside the websites you already use:
-> read pages, switch tabs, click, type, screenshot, run JS, and work inside
-> real logged-in products like X, Gmail, Outlook, Amazon, LinkedIn, Facebook,
-> Instagram, or WeChat Web.
+> For **OpenClaw, Copilot CLI, Claude Code, Hermes, and other local AI
+> agents** — on **Edge, Chrome, and other Chromium-based browsers**.
+>
+> yumweb is a cross-platform, AI-friendly **logged-in browser bridge**. It
+> keeps a persistent browser session alive so an agent can operate inside the
+> websites you already use: read pages, switch tabs, click, type, screenshot,
+> run JS, and work inside real logged-in products like X, Gmail, Outlook,
+> Amazon, LinkedIn, Facebook, Instagram, or WeChat Web.
 
 Designed to be dropped into agent frameworks (OpenClaw, Claude Code, GitHub
 Copilot, custom RPA scripts, etc.) as a **skill**: every command is one-shot,
@@ -19,6 +21,13 @@ directory and `--remote-debugging-port=9333`. No bundled browser is
 downloaded — we use the Edge you already have installed.
 
 ---
+
+## Why yumweb?
+
+- **Multi-agent:** built for OpenClaw, Copilot CLI, Claude Code, Hermes, and any agent that can call local CLI tools
+- **Cross-browser:** Microsoft Edge preferred, with Chrome, Chromium, and other Chromium-based browsers supported
+- **Logged-in by default:** log in once, let the agent come back later and continue
+- **Local-first:** your browser session stays on your machine
 
 ## What makes yumweb different?
 
