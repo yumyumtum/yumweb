@@ -15,6 +15,12 @@ Designed to be dropped into agent frameworks (OpenClaw, Claude Code, GitHub
 Copilot, custom RPA scripts, etc.) as a **skill**: every command is one-shot,
 prints to stdout, and exits with a sensible code.
 
+**At a glance**
+- **Multi-agent:** OpenClaw, Copilot CLI, Claude Code, Hermes, and other local agents
+- **Cross-browser:** Edge preferred, Chrome / Chromium supported
+- **Logged-in by default:** log in once, let the agent continue later
+- **Local-first:** browser session stays on your machine
+
 Under the hood: [Playwright](https://playwright.dev/python/) attaches over
 Chrome DevTools Protocol to an Edge instance launched with a private user-data
 directory and `--remote-debugging-port=9333`. No bundled browser is
